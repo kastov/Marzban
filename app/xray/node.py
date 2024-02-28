@@ -101,7 +101,8 @@ class ReSTXRayNode:
 
     def make_request(self, path, **params):
         try:
-            res = self.session.post(self._rest_api_url + path, json={"session_id": self._session_id, **params})
+            res = self.session.post(self._rest_api_url + path, json={"session_id": self._session_id, **params},
+                                    timeout=5)
             data = res.json()
         except Exception as e:
             exc = NodeAPIError(0, str(e))
@@ -170,7 +171,7 @@ class ReSTXRayNode:
         json_config = config.to_json()
 
         try:
-            res = self.make_request("/start", config=json_config)
+            res = self.make_request("/start", config=json_config, timeout=5)
         except NodeAPIError as exc:
             if exc.detail == 'Xray is started already':
                 return self.restart(config)
@@ -197,7 +198,7 @@ class ReSTXRayNode:
         if not self.connected:
             self.connect()
 
-        self.make_request('/stop')
+        self.make_request('/stop', timeout=5)
         self._api = None
         self._started = False
 
@@ -208,7 +209,7 @@ class ReSTXRayNode:
         config = self._prepare_config(config)
         json_config = config.to_json()
 
-        res = self.make_request("/restart", config=json_config)
+        res = self.make_request("/restart", config=json_config, timeout=5)
 
         self._started = True
 
@@ -231,7 +232,7 @@ class ReSTXRayNode:
             try:
                 websocket_url = f"{self._logs_ws_url}?session_id={self._session_id}&interval=0.7"
                 self._ssl_context.load_verify_locations(self.session.verify)
-                ws = create_connection(websocket_url, sslopt={"context": self._ssl_context}, timeout=2)
+                ws = create_connection(websocket_url, sslopt={"context": self._ssl_context}, timeout=3)
                 while self._logs_queues:
                     try:
                         logs = ws.recv()
